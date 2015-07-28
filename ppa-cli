@@ -1,0 +1,95 @@
+#!/bin/bash
+
+
+error(){
+    echo "ERROR: $@" >&2
+}
+
+
+main(){
+    if (( $# == 1 )) && [[ $1 =~ ^(-h|--help|help)$ ]]; then
+        echo "Usage: ${0##*/} <add|install|list> [file]"
+        exit 0
+    fi
+
+    if [[ -z $1 ]]; then
+        error "No command provided"
+        exit 1
+    elif [[ ! $1 =~ ^(add|install|list)$ ]]; then
+        error "Invalid command"
+        exit 1
+    fi
+
+    if (( $# == 2 )) && [[ $1 = add ]]; then
+        if [[ $2 =~ ^ppa:// ]]; then
+            sudo apt-add-repository "$2"
+        else
+            error "'$2' does not appear to be a PPA (it doesn't start with ppa://)"
+            exit 1
+        fi
+    elif (( $# == 2 )) && [[ $1 = install ]]; then
+        # ensure file is a regular file with a size greater than zero
+        if [[ -r $2 && -s $2 ]]; then
+            while IFS= read -r ppa; do
+                sudo apt-add-repository -y "$ppa" >/dev/null 2>&1 && successes+=("$ppa") || failures+=("$ppa")
+            done < "$2"
+
+            if (( ${#successes[@]} == 0 )); then
+                error "No ppas installed"
+                exit 1
+            elif (( ${#failures[@]} > 0 )); then
+                error "Failed to install the following ppas"
+                printf '%s\n' "${failures[@]}"
+                exit 1
+            fi
+        else
+            error "'$2' is not a valid target file"
+            exit 1
+        fi
+    elif (( $# == 1 )) && [[ $1 = list ]]; then
+        find /etc/apt -type f -name '*.list' -exec awk -F '/' '/^deb http:\/\/ppa\.launchpad\.net\// { printf "ppa:%s/%s\n", $4, $5 }' {} + 2>/dev/null | sort -u
+        exit 0
+    else
+        error "Invalid number of arguments"
+        exit 1
+    fi
+}
+
+
+# main(){
+#     if (( $# == 1 )) && [[ $1 =~ ^(-h|--help|help)$ ]]; then
+#         echo "Usage: ${0##*/} <add|install|list> [file]"
+#         exit 0
+#     elif (( $# == 1 )) && [[ $1 = list ]]; then
+#         display_ppa_list
+#         exit 0
+#     elif (( $# == 2 )) && [[ $1 = add ]]; then
+#         if [[ ! $2 =~ ^ppa:// ]]; then
+#             error "'$2' does not appear to be a PPA (it doesn't start with ppa://)"
+#             exit 1
+#         else
+#             sudo apt-add-repository "$2"
+#         fi
+#     elif (( $# == 2 )) && [[ $1 = install ]]; then
+#         if [[ ! -r $2 ]]; then
+#             error "'$2' is not a valid target file"
+#             exit 1
+#         else
+#             while IFS= read -r ppa; do
+#                 sudo apt-add-repository -y "$ppa" >/dev/null 2>&1
+#                 (( $? != 0 )) && failures=true && error "Failed to add '$ppa'"
+#             done < "$2"
+#             if [[ $failures = true ]]; then
+#                 exit 1
+#             else
+#                 exit 0
+#             fi
+#         fi
+#     else
+#         error "Invalid command"
+#         exit 1
+#     fi
+# }
+
+
+main "$@"

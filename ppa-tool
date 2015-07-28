@@ -1,0 +1,129 @@
+#!/bin/bash
+
+
+create_ppa_list(){
+    find /etc/apt -type f -name '*.list' -exec awk -F '/' '/^deb http:\/\/ppa\.launchpad\.net\// {printf "ppa:%s/%s\n", $4, $5}' {} + 2>/dev/null | sort -u
+}
+
+
+error_removing(){
+    yad --borders=5 --button='gtk-close:1' --image=dialog-warning --text="<small>
+</small><big>Unsuccessful removing $1</big><small>
+
+</small><b>$2</b><small>
+</small>" --text-align=center --title='PPA Tool' --width=350 --window-icon=ppa
+}
+
+
+display_ppa_list(){
+    deletions=$(create_ppa_list | sed 's/^/FALSE\n/' | yad --button='Delete!edit-delete:20' --button=gtk-close:10 --buttons-layout=center --checklist --column= --column="Launchpad PPA's" --height=400 --list --print-column=2 --separator= --title='PPA Tool' --width=350 --window-icon=ppa)
+    EC=$?
+    if (( EC == 252 )); then
+        exit 1
+    elif (( EC == 10 )); then
+        exit 1
+    elif (( EC == 20 )); then
+        while read -r ppa; do
+            remove_ppa "$ppa"
+        done <<<"$deletions"
+    fi
+}
+
+main(){
+    if [[ -n "$@" ]]; then
+        cat <<-EOF
+		Usage: ${0##*/}
+
+		NOTE: For GUI use only
+
+		EOF
+        exit 0
+    fi
+
+    ppa=$(yad --borders=5 --button='Add PPA!gtk-add:10' --button='Remove PPA!gtk-delete:20' --button="List PPA's!gtk-select-all:30" --entry --text='<small>
+    </small><big>Please enter Launchpad PPA:</big><small>
+    </small>' --text-align=center --title='PPA Tool' --width=435 --window-icon=ppa)
+    EC=$?
+    if (( EC == 252 )); then  # exit button
+        exit 1
+    elif (( EC == 10 )); then  # add PPA
+        if [[ -n $ppa ]]; then
+            add_output=$(gksu "add-apt-repository -y '$ppa'" 2>&1)
+            if [[ $(head -n1 <<<"$add_output") = OK ]]; then
+                yad --borders=5 --button='gtk-close:0' --height=110 --image=dialog-ok-apply --text='<small>
+    </small><big><b>Success!</b></big>' --text-align=center --title='PPA Tool' --width=200 --window-icon=ppa
+            else
+                yad --borders=5 --button='gtk-close:1' --height=110 --image=dialog-warning --text='<small>
+    </small><big><b>Failure!</b></big><small>
+
+      Please see terminal for further error reporting.  
+    </small>' --text-align=center --title='PPA Tool' --width=325 --window-icon=ppa
+            fi
+        else
+            exit 1
+        fi
+    elif (( EC == 20 )); then  # remove PPA
+        remove_ppa "$ppa"
+    elif (( EC == 30 )); then  # list PPA's
+        display_ppa_list
+    fi
+}
+
+remove_ppa(){
+    ppa=$1
+    yad --borders=5 --button='gtk-no:10' --button='gtk-yes:20' --text="<small>
+</small><big>Are you sure you want to delete the PPA?</big><small>
+
+</small><b>$ppa</b><small>
+</small>" --text-align=center --title='PPA Tool' --width=435 --window-icon=ppa
+    EC=$?
+    if (( EC == 252 )); then  # exit button
+        exit 1
+    elif (( EC == 10 )); then  # cancel
+        exit 1
+    elif (( EC == 20 )); then  # confirm
+        removal_output=$(gksu "add-apt-repository -ry '$ppa'")
+        if [[ -z $removal_output ]]; then
+            yad --borders=5 --button='gtk-close:0' --height=110 --image=dialog-ok-apply --text="<small>
+</small><big>Successfully removed PPA</big><small>
+
+</small><b>$ppa</b><small>
+</small>" --text-align=center --title='PPA Tool' --width=435 --window-icon=ppa
+            # check whether we can find a GPG key
+            keyname=$(sed 's/.*://;s/\//-/' <<<"$ppa")
+            if [[ ! -s "/etc/apt/trusted.gpg.d/${keyname}.gpg" ]]; then
+                exit 0
+            fi
+            keyinfo=$(apt-key --keyring "/etc/apt/trusted.gpg.d/${keyname}.gpg" list | head -n-1)
+            if [[ -z $keyinfo ]]; then
+                exit 0
+            fi
+            keyid=$(tail -n+3 <<<"$keyinfo" | awk -F '[/ ]' '/^pub/ { print $5 }')
+            if [[ -z $keyid ]]; then
+                exit 0
+            fi
+            # now that we know it exists, ask user whether to delete the GPG key
+            yad --borders=5 --button='gtk-no:10' --button='gtk-yes:20' --height=225 --margins=10 --text="<small>
+</small>  Would you like to delete key <b>$keyid</b>?<small>
+</small>" --text-info --title='PPA Tool' --width=400 --window-icon=ppa <<<$'\n'"$(sed 's/^/ /' <<<"$keyinfo")"
+            EC=$?
+            if (( EC == 252 )); then  # exit button
+                exit 0
+            elif (( EC == 10 )); then  # cancel
+                exit 0
+            elif (( EC == 20 )); then  # confirm
+                gksu "apt-key --keyring '/etc/apt/trusted.gpg.d/${keyname}.gpg' del $keyid"
+                if (( $? != 0 )); then
+                    error_removing key "$keyid"
+                else
+                    exit 0
+                fi
+            fi
+        else
+            error_removing PPA "$ppa"
+            exit 1
+        fi
+    fi
+}
+
+main "$@"
