@@ -20,14 +20,13 @@ main(){
         exit 1
     fi
 
-    if (( $# == 2 )) && [[ $1 = add ]]; then
-        if [[ $2 =~ ^ppa:// ]]; then
-            sudo apt-add-repository "$2"
-        else
-            error "'$2' does not appear to be a PPA (it doesn't start with ppa://)"
+    if [[ $1 = add ]] && (( $# == 2 )); then
+        if [[ ! $2 =~ ^ppa: ]]; then
+            error "'$2' does not appear to be a PPA (it doesn't start with ppa:)"
             exit 1
         fi
-    elif (( $# == 2 )) && [[ $1 = install ]]; then
+        sudo apt-add-repository "$2"
+    elif [[ $1 = install ]] && (( $# == 2 )); then
         # ensure file is a regular file with a size greater than zero
         if [[ -r $2 && -s $2 ]]; then
             while IFS= read -r ppa; do
