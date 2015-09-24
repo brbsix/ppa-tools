@@ -22,7 +22,7 @@ To make use of `ppa-tool`, ensure the following package is installed on your sys
 
 You can do the following to install a recent version of `yad`:
 
-    sudo add-apt-repository ppa://nilarimogard/webupd8
+    sudo add-apt-repository ppa:nilarimogard/webupd8
     sudo apt-get update
     sudo apt-get install yad
 
