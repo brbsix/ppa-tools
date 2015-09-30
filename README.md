@@ -5,9 +5,9 @@ Manipulate PPA's individually or in bulk from the command line and via GUI.
 Installation
 ------------
 
-To install scripts locally:
+To install scripts locally (assuming `~/.local/bin` is on your PATH):
 
-    install ppa-cli ppa-tool $HOME/.local/bin
+    install ppa-cli ppa-tool ~/.local/bin
 
 To install scripts to the computer:
 
