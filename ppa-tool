@@ -47,20 +47,17 @@ main(){
     if (( EC == 252 )); then  # exit button
         exit 1
     elif (( EC == 10 )); then  # add PPA
-        if [[ -n $ppa ]]; then
-            add_output=$(gksu "add-apt-repository -y '$ppa'" 2>&1)
-            if [[ $(head -n1 <<<"$add_output") = OK ]]; then
-                yad --borders=5 --button='gtk-close:0' --height=110 --image=dialog-ok-apply --text='<small>
+        [[ -n $ppa ]] || exit 1
+        add_output=$(gksu "add-apt-repository -y '$ppa'" 2>&1)
+        if [[ $(head -n1 <<<"$add_output") = OK ]]; then
+            yad --borders=5 --button='gtk-close:0' --height=110 --image=dialog-ok-apply --text='<small>
     </small><big><b>Success!</b></big>' --text-align=center --title='PPA Tool' --width=200 --window-icon=ppa
-            else
-                yad --borders=5 --button='gtk-close:1' --height=110 --image=dialog-warning --text='<small>
+        else
+            yad --borders=5 --button='gtk-close:1' --height=110 --image=dialog-warning --text='<small>
     </small><big><b>Failure!</b></big><small>
 
       Please see terminal for further error reporting.  
     </small>' --text-align=center --title='PPA Tool' --width=325 --window-icon=ppa
-            fi
-        else
-            exit 1
         fi
     elif (( EC == 20 )); then  # remove PPA
         remove_ppa "$ppa"
