@@ -81,7 +81,7 @@ remove_ppa(){
         exit 1
     elif (( EC == 20 )); then  # confirm
         removal_output=$(gksu "add-apt-repository -ry '$ppa'")
-        if [[ -z $removal_output ]]; then
+        if [[ $? -eq 0 && -z $removal_output ]]; then
             yad --borders=5 --button='gtk-close:0' --height=110 --image=dialog-ok-apply --text="<small>
 </small><big>Successfully removed PPA</big><small>
 
