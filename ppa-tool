@@ -96,7 +96,7 @@ remove_ppa(){
             if [[ -z $keyinfo ]]; then
                 exit 0
             fi
-            keyid=$(tail -n+3 <<<"$keyinfo" | awk -F '[/ ]' '/^pub/ { print $5 }')
+            keyid=$(tail -n+3 <<<"$keyinfo" | awk -F '[/ ]' '/^pub/ { print $5; exit }')
             if [[ -z $keyid ]]; then
                 exit 0
             fi
