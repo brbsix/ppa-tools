@@ -68,6 +68,7 @@ main(){
 
 remove_ppa(){
     ppa=$1
+    [[ -n $ppa ]] || exit 1
     yad --borders=5 --button='gtk-no:10' --button='gtk-yes:20' --text="<small>
 </small><big>Are you sure you want to delete the PPA?</big><small>
 
