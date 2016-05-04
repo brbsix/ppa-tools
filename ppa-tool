@@ -103,7 +103,7 @@ remove_ppa(){
             # now that we know it exists, ask user whether to delete the GPG key
             yad --borders=5 --button='gtk-no:10' --button='gtk-yes:20' --height=225 --margins=10 --text="<small>
 </small>  Would you like to delete key <b>$keyid</b>?<small>
-</small>" --text-info --title='PPA Tool' --width=400 --window-icon=ppa <<<$'\n'"$(sed 's/^/ /' <<<"$keyinfo")"
+</small>" --text-info --title='PPA Tool' --width=450 --window-icon=ppa <<<$'\n'"$(sed 's/^/ /' <<<"$keyinfo")"
             EC=$?
             if (( EC == 252 )); then  # exit button
                 exit 0
